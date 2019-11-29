@@ -131,15 +131,33 @@ void linkListPop(linkList plinklist, Node * pnode)
 	        cur = cur->next;
 	    } 
 }
+
+//打印队列 
 void print(linkList p){
 	Node *q = NULL;
 	q = p->head;
 	while(q != NULL){
-		cout << q->data.name << "-_-";
+		cout << q->data.name << "\t";
 		q = q->next; 
 	}
 	cout << endl;
 } 
+
+//判断区分打印队列
+void select(int f, linkList p){
+	if(1 == f){
+		//就绪队列 
+		cout << "************************************" << endl;
+		cout << "\t就绪队列进程：";
+		print(p); 
+	}else if(0 == f){
+		//完成队列
+		cout << "\t完成队列进程：";
+		print(p); 
+		cout << "************************************" << endl;
+	}
+}
+ 
 //判断队空 
 int islinkListEmpty(linkList plinkList)
 {

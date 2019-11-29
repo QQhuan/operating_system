@@ -55,6 +55,8 @@ int isChange(int num){
 	return num == Round?1:0;
 } 
 
+
+
 //短进程优先调度 
 void SJF(PCB p[], int num){
 	int time = 0;
@@ -62,8 +64,9 @@ void SJF(PCB p[], int num){
 	int processNum = num;
 	Node *running= NULL;  // 代表正在运行的进程 
 	Node *mid = NULL; 
-	linkList queue;       //就绪队列 
+	linkList queue, finish;       //就绪队列 
 	linkListInit(queue);
+	linkListInit(finish);
 	while(1){
 		for(int i = 0;i < num; i++){
 			if(p[i].arriveTime == time){  //模拟每一秒的时间，检查是否有进程到达， 到达的进程加入就绪队列 
@@ -86,7 +89,8 @@ void SJF(PCB p[], int num){
             cout << time << "时刻: 进程" << running->data.name << "结束" << endl;
 			record(p, running->data.name, time); 
 		//	cout << running->data.name << endl;
-            linkListPop(queue, running);
+            //linkListPop(queue, running);
+            linkListPush(finish, running->data); //进入完成队列 
             running = NULL;
         }
         
@@ -96,7 +100,7 @@ void SJF(PCB p[], int num){
 			
 			while(mid != NULL){
 				//处理机空闲 , 从队列中选出一个服务时间最短的 
-				if(running == NULL && queue->size > 1 && mid->data.restTime < mid->next->data.restTime) 
+				if(running == NULL && queue->size > 1 && mid->data.restTime <= mid->next->data.restTime) 
 					running = mid;
 				else if(running == NULL && queue->size > 1 && mid->data.restTime > mid->next->data.restTime)
 					running = mid->next;
@@ -111,22 +115,27 @@ void SJF(PCB p[], int num){
 				}
 				mid = mid->next;
 			}
+			linkListPop(queue, running);  //该进程移除就绪队列 
 			newPcb = 0;
 		}
 		//cout << queue->head->data.arriveTime << endl;
 		if(newPcb && running != NULL){
-			mid = queue->head;
-			while(mid != NULL){
-				//新进程到达判断是否切换进程 
-				if(mid->data.arriveTime == time && mid->data.restTime < running->data.restTime){
-					running = mid; 
-				}
-				mid = mid->next;
+			mid = queue->tail;
+			//新进程到达判断是否切换进程, 即—抢占 
+			if(mid->data.arriveTime == time && mid->data.restTime < running->data.restTime){
+				cout << "发生抢占" << endl; 
+				linkListPush(queue, running->data);
+				linkListPop(queue, mid); 
+				running = mid;
 			}
 			newPcb = 0;
 		}
+		cout << endl;
 		if(running != NULL)
-	    	cout << time <<"时刻占用处理机：" << running->data.name << endl;
+	    	cout << "\t\t" << time <<"时刻" << endl;
+	    select(1, queue);
+	    cout << "\t正在运行的进程：" << running->data.name << endl; 
+	    select(0, finish);
         //当前进程时间 —— 
         if (running != NULL) {
             --(running->data.restTime);
@@ -142,8 +151,9 @@ void HRRN(PCB p[], int num){
 	int processNum = num;
 	Node *running = NULL;  //代表正在运行的进程 
 	Node *mid = NULL; 
-	linkList queue;       //就绪队列 
+	linkList queue, finish;       //就绪队列 
 	linkListInit(queue);
+	linkListInit(finish);
 	while(1){
 		for(int i = 0;i < num; i++){
 			if(p[i].arriveTime == time){  //模拟每一秒的时间，检查是否有进程到达， 到达的进程加入就绪队列 
@@ -154,8 +164,7 @@ void HRRN(PCB p[], int num){
 			}
 		}
 		//print(queue);
-		if(running != NULL)
-	    	cout << time <<"时刻占用处理机：" << running->data.name << endl; 
+		
 		if(islinkListEmpty(queue) && processNum == 0){
 			cout << "进程调度完毕" << endl;
 			cout << "平均周转时间：" << calculate(p) <<endl; 
@@ -166,7 +175,8 @@ void HRRN(PCB p[], int num){
 		if (running != NULL && running->data.restTime == 0) {
             cout << time << "时刻: 进程" << running->data.name << "结束" << endl;
 			record(p, running->data.name, time); 
-            linkListPop(queue, running);
+            //linkListPop(queue, running);
+            linkListPush(finish, running->data); 
             running = NULL;
         } 
         
@@ -176,7 +186,13 @@ void HRRN(PCB p[], int num){
 			while(mid != NULL){
 				Node *q = mid->next; 
 				//处理机空闲 , 从队列中选出一个x优先级最高的进程 
-				if(running == NULL && queue->size > 1 && Pb(time, mid->data.arriveTime, mid->data.restTime) > Pb(time, q->data.arriveTime, q->data.restTime)) 
+				if(NULL == q && queue->size != 1){
+					if(Pb(time, mid->data.arriveTime, mid->data.restTime) > Pb(time, running->data.arriveTime, running->data.restTime)){
+						running = mid;
+						break;
+					}
+				} 
+				if(running == NULL && queue->size > 1 && Pb(time, mid->data.arriveTime, mid->data.restTime) >= Pb(time, q->data.arriveTime, q->data.restTime)) 
 					running = mid;
 				else if(running == NULL && queue->size > 1 && Pb(time, mid->data.arriveTime, mid->data.restTime) < Pb(time, q->data.arriveTime, q->data.restTime))
 					running = q;
@@ -186,15 +202,21 @@ void HRRN(PCB p[], int num){
 				//找出队列中的最短进程，获得处理机
 				//当队列中存在两个相同时间的进程时，排在前面的那一个获得处理机
 				//当正在运行的进程剩余服务时间跟队列中最小服务时长进程相等时，不作进程切换 
-//				else if(running != NULL && mid->data.serverTime < running->data.restTime){
-//					running = mid; 
-//				}
+				else if(running != NULL && Pb(time, mid->data.arriveTime, mid->data.restTime) > Pb(time, running->data.arriveTime, running->data.restTime)){
+					running = mid; 
+				}
 				mid = mid->next;
 			}
+			linkListPop(queue, running);
 		}
 		//cout << queue->head->data.arriveTime << endl;
 		
-		
+		cout << endl;
+		if(running != NULL)
+	    	cout << "\t\t" << time <<"时刻" << endl;
+	    select(1, queue);
+	    cout << "\t正在运行的进程：" << running->data.name << endl; 
+	    select(0, finish);
         //当前进程时间 —— 
         if (running != NULL) {
             --(running->data.restTime);
@@ -210,8 +232,9 @@ void RR(PCB p[], int num){
 	int processNum = num;
 	Node *running= NULL;  // 代表正在运行的进程 
 	Node *mid = NULL; 
-	linkList queue;       //就绪队列 
+	linkList queue, finish;       //就绪队列 
 	linkListInit(queue);
+	linkListInit(finish);
 	while(1){
 		for(int i = 0;i < num; i++){
 			if(p[i].arriveTime == time){  //模拟每一秒的时间，检查是否有进程到达， 到达的进程加入就绪队列 
@@ -238,6 +261,7 @@ void RR(PCB p[], int num){
 			cout << time << "时刻: 进程" << running->data.name << "结束" << endl;
 			record(p, running->data.name, time); 
 			running = queue->head;
+			linkListPush(finish, running->data);
 			linkListPop(queue, running);
 			cal = 0;
 		}
@@ -256,9 +280,16 @@ void RR(PCB p[], int num){
 			}
 			
 		}
+		
+		
+		//输出 
+		cout << endl;
 		if(running != NULL)
-	    	cout << time <<"时刻占用处理机：" << running->data.name << endl; 
-        //当前进程时间 —— 
+	    	cout << "\t\t" << time <<"时刻" << endl;
+	    select(1, queue);
+	    cout << "\t正在运行的进程：" << running->data.name << endl; 
+	    select(0, finish);
+        //当前进程时间 —— r 
         if (running != NULL) {
             --(running->data.restTime);
         }
@@ -280,38 +311,41 @@ int main(){
 //	int restTime;    //剩余服务时长 
 //	int priority;	 //优先级 
 	int random = 0, randomT = 0;
-	
+	cout << "****************************" << endl;
+	cout << "进程名 到达时间 要求服务时间" << endl; 
 	srand((unsigned)time(NULL));
 	random = 0;  //十以内的随机数 
 	randomT = rand()%10+1;
 	pcbs[0].name = '1';pcbs[0].arriveTime = 0;pcbs[0].runTime = 0;pcbs[0].startTime = 0;
 	pcbs[0].finishTime = 0;pcbs[0].serverTime = randomT; pcbs[0].restTime = randomT;pcbs[0].priority = 0;
-	cout << 1 << " " << 0 << " " << randomT << endl;
+	cout << "  " << 1 << "\t " << 0 << " \t\t" << randomT << endl;
 	
 	random = rand()%10;  //十以内的随机数 
 	randomT = rand()%10+1;
 	pcbs[1].name = '2';pcbs[1].arriveTime = random;pcbs[1].runTime = 0;pcbs[1].startTime = 0;
 	pcbs[1].finishTime = 0;pcbs[1].serverTime = randomT; pcbs[1].restTime = randomT;pcbs[1].priority = 0;
-	cout << 2 << " " << random << " " << randomT << endl;
+	cout << "  " << 2 << "\t " << random << " \t\t" << randomT << endl;
 	
 	random = rand()%10;  //十以内的随机数 
 	randomT = rand()%10+1;
 	pcbs[2].name = '3';pcbs[2].arriveTime = random;pcbs[2].runTime = 0;pcbs[2].startTime = 0;
 	pcbs[2].finishTime = 0;pcbs[2].serverTime = randomT; pcbs[2].restTime = randomT;pcbs[2].priority = 0;
-	cout << 3 << " " << random << " " << randomT << endl;
+	cout << "  " << 3 << "\t " << random << " \t\t" << randomT << endl;
 	
 	random = rand()%10;  //十以内的随机数 
 	randomT = rand()%10+1;
 	pcbs[3].name = '4';pcbs[3].arriveTime = random;pcbs[3].runTime = 0;pcbs[3].startTime = 0;
 	pcbs[3].finishTime = 0;pcbs[3].serverTime = randomT; pcbs[3].restTime = randomT;pcbs[3].priority = 0;
-	cout << 4 << " " << random << " " << randomT << endl;
+	cout << "  " << 4 << "\t " << random << " \t\t" << randomT << endl;
 	
 	random = rand()%10;  //十以内的随机数 
 	randomT = rand()%10+1;
 	pcbs[4].name = '5';pcbs[4].arriveTime = random;pcbs[4].runTime = 0;pcbs[4].startTime = 0;
 	pcbs[4].finishTime = 0;pcbs[4].serverTime = randomT; pcbs[4].restTime = randomT;pcbs[4].priority = 0;
-	cout << 5 << " " << random << " " << randomT << endl;
+	cout << "  " << 5 << "\t " << random << " \t\t" << randomT << endl;
+	cout << "****************************" << endl;
 	
+	cout << endl;
 	cout << "短进程优先调度:" << endl << endl; 
 	SJF(pcbs, n);
 	

@@ -161,7 +161,7 @@ void print(){
 	Node *q = NULL;
 	q = queue->head;
 	while(q != NULL){
-		cout << "进程：" << "[" << q->data.name << "] ";
+		cout << "\t进程：" << "[" << q->data.name << "] ";
 		cout << "需要的资源：" << " "; 
 		for(int i = 0; i < m; i++){
 			cout << Need[q->data.name][i] << " ";
@@ -171,12 +171,13 @@ void print(){
 			cout << Allocation[q->data.name][i] << " ";
 		}
 		q = q->next;
+		cout << endl; 
 	}
 	cout << endl;
 	cout << "阻塞队列：" << endl; 
 	q = waitQueue->head;
 	while(q != NULL){
-		cout << "进程：" << "[" << q->data.name << "] ";
+		cout << "\t进程：" << "[" << q->data.name << "] ";
 		cout << "需要的资源：" << " "; 
 		for(int i = 0; i < m; i++){
 			cout << Need[q->data.name][i] << " ";
