@@ -151,7 +151,7 @@ int linkListSize(linkList plinklist)
 
 
 //先来先服务调度 
-void FCFS(int disk[]){
+void FCFS(int disk[]){	
 	cout << "先来先服务调度：" << endl; 
 	cout << "磁头刚从80 >>> 100" << endl;
 	cout << "******************" << endl;
@@ -248,7 +248,7 @@ void SCAN(int disk[]){
 		}
 	}
 	cout << "******************" << endl;
-	cout << "最短寻道时间优先平均寻道时间：" << num/10 << endl << endl;	  
+	cout << "扫描算法平均寻道时间：" << num/10 << endl << endl;	  
 } 
 
 //循环扫描
@@ -300,7 +300,7 @@ void CSCAN(int disk[]){
 			
 	}
 	cout << "******************" << endl;
-	cout << "最短寻道时间优先平均寻道时间：" << num/10 << endl << endl;
+	cout << "循环扫描算法平均寻道时间：" << num/10 << endl << endl;
 } 
 
 int main(){
